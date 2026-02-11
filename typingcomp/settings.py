@@ -22,6 +22,14 @@ DEBUG = os.environ.get("DEBUG", "False") == "True"
 # Allowed hosts
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "*").split(",")
 
+
+CSRF_TRUSTED_ORIGINS = ["https://blindtyping.onrender.com"]
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SAMESITE = "Lax"
+
 # Application definition
 INSTALLED_APPS = [
     "jazzmin",
