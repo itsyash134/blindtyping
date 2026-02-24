@@ -9,6 +9,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 from django.http import HttpResponse
+from django.db.models import Prefetch
 
 def home(request):
     tests = TypingTest.objects.filter(active=True)
@@ -121,9 +122,19 @@ def submit_result(request):
 
 
 def leaderboard(request):
-    results = Result.objects.filter(
-        suspicious=False).order_by("-wpm", "-accuracy")[:50]
-    return render(request, "competition/leaderboard.html", {"results": results})
+    tests = TypingTest.objects.filter(active=True).order_by("id").prefetch_related(
+        Prefetch(
+            "result_set",
+            queryset=Result.objects.filter(suspicious=False, disqualified=False)
+                                   .select_related("user")
+                                   .order_by("-wpm", "-accuracy"),
+            to_attr="ordered_results"
+        )
+    )
+
+    return render(request, "competition/leaderboard.html", {
+        "tests": tests
+    })
 
 
 def rank_list(request, test_id):

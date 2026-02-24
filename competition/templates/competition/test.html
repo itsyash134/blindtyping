@@ -33,19 +33,31 @@
     </div>
 
     <!-- Test Card -->
+    <!-- Test Card -->
     <div
       class="bg-black/40 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
-      <!-- Display Text -->
-      <div
-        id="display"
-        class="min-h-[120px] text-2xl md:text-3xl leading-relaxed font-mono tracking-wide text-white mb-6 p-6 rounded-2xl bg-slate-900/60 border border-white/10"></div>
+      <!-- Two Column Layout -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Display Text (Left) -->
+        <div
+          id="display"
+          class="text-2xl md:text-3xl leading-relaxed font-mono tracking-wide text-white p-4 rounded-2xl bg-slate-900/60 border border-white/10 whitespace-pre-wrap h-[300px] overflow-y-auto"></div>
 
-      <!-- Input -->
-      <textarea
-        id="input"
-        rows="4"
-        placeholder="Start typing here..."
-        class="w-full text-xl font-mono p-4 rounded-2xl bg-black/60 border border-white/20 focus:outline-none focus:ring-2 focus:ring-green-400 text-white resize-none"></textarea>
+        <!-- Input (Right) -->
+        <!-- Input (Right) -->
+        <div>
+          <textarea
+            id="input"
+            rows="10"
+            placeholder="Start typing here..."
+            class="w-full text-2xl font-mono p-4 rounded-2xl bg-black/60 border border-white/20 focus:outline-none focus:ring-2 focus:ring-green-400 text-white resize-none h-[300px]"></textarea>
+
+          <!-- Caps Lock Warning -->
+          <div id="capsWarning" class="mt-2 text-xl text-red-400 hidden">
+            ⚠️ Caps Lock is ON
+          </div>
+        </div>
+      </div>
 
       <!-- Hints -->
       <div class="mt-4 flex flex-wrap gap-4 text-sm text-gray-400">
@@ -58,177 +70,238 @@
     </div>
   </div>
 </section>
+<style>
+  /* Hide scrollbar but keep scrolling */
 
+  /* For Render Text Box */
+  #display {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE & Edge */
+  }
+  #display::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+
+  /* For Input Box */
+  #input {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE & Edge */
+  }
+  #input::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+</style>
 <script>
-    const fullText = `{{ test.text|escapejs }}`;
-    const duration = {{ test.duration }};
+          const fullText = `{{ test.text|escapejs }}`;
+          const duration = {{ test.duration }};
 
-    const display = document.getElementById("display");
-    const input = document.getElementById("input");
-    const timerDiv = document.getElementById("timer");
-    const progressBar = document.getElementById("progressBar");
+          const display = document.getElementById("display");
+          const input = document.getElementById("input");
+          const timerDiv = document.getElementById("timer");
+          const progressBar = document.getElementById("progressBar");
 
-    input.focus();
+          input.focus();
 
-    let startTime = null;
-    let timeLeft = duration;
-    let timerInterval = null;
-    let testStarted = false;
+          let startTime = null;
+          let timeLeft = duration;
+          let timerInterval = null;
+          let testStarted = false;
 
-    let keystrokes = [];
-    let tabSwitches = 0;
-    let pasteAttempts = 0;
-    let backspaceCount = 0;
+          let keystrokes = [];
+          let tabSwitches = 0;
+          let pasteAttempts = 0;
+          let backspaceCount = 0;
 
-    // Render text with smooth styling
-    function renderText(upto) {
+          // Render text with smooth styling
+     function renderText(upto) {
       let html = "";
+      const typed = input.value;
 
-      // Typed part (green)
-      html += `<span class="text-green-400">${fullText.slice(0, upto)}</span>`;
+      for (let i = 0; i < fullText.length; i++) {
+        const expectedChar = fullText[i];
+        const typedChar = typed[i];
 
-      // Current character (highlight)
-      if (upto < fullText.length) {
-        html += `<span class="bg-green-400/20 text-green-300 animate-pulse px-0.5">${fullText[upto]}</span>`;
+        if (i < typed.length) {
+          if (typedChar === expectedChar) {
+            // ✅ Correct character
+            html += `<span class="text-green-400">${expectedChar}</span>`;
+          } else {
+            // ❌ Wrong character
+            html += `<span class="text-red-400 underline">${expectedChar}</span>`;
+          }
+        } else if (i === typed.length) {
+          // ▶️ Caret position
+          html += `<span id="caret" class="bg-green-400/20 text-green-300 animate-pulse px-0.5">${expectedChar || " "}</span>`;
+        } else {
+          // ⏳ Not typed yet
+          html += `<span class="text-gray-400">${expectedChar}</span>`;
+        }
       }
 
-      // Do NOT show the rest (blind mode)
       display.innerHTML = html;
+
+      // 🔽 Auto-scroll to keep current line in view
+      const caret = document.getElementById("caret");
+      if (caret) {
+        const caretTop = caret.offsetTop;
+        const boxHeight = display.clientHeight;
+        display.scrollTop = caretTop - boxHeight / 2;
+      }
     }
 
 
-    renderText(0);
+          renderText(0);
 
-    // 🔒 Start test
-    function startTest() {
-      if (testStarted) return;
-      testStarted = true;
+          // 🔒 Start test
+          function startTest() {
+            if (testStarted) return;
+            testStarted = true;
 
-      if (document.documentElement.requestFullscreen) {
-        document.documentElement.requestFullscreen().catch(() => {});
-      }
+            if (document.documentElement.requestFullscreen) {
+              document.documentElement.requestFullscreen().catch(() => {});
+            }
 
-      startTime = new Date();
+            startTime = new Date();
 
-      timerInterval = setInterval(() => {
-        timeLeft--;
-        timerDiv.innerText = timeLeft + "s";
+            timerInterval = setInterval(() => {
+              timeLeft--;
+              timerDiv.innerText = timeLeft + "s";
 
-        if (timeLeft <= 10) {
-          timerDiv.classList.add("text-red-400");
-        }
+              if (timeLeft <= 10) {
+                timerDiv.classList.add("text-red-400");
+              }
 
-        if (timeLeft <= 0) {
-          finishTest();
-        }
-      }, 1000);
+              if (timeLeft <= 0) {
+                finishTest();
+              }
+            }, 1000);
+          }
+
+          // 🚫 Exit fullscreen = disqualify
+          document.addEventListener("fullscreenchange", () => {
+            if (testStarted && !document.fullscreenElement) {
+              disqualify("Exited fullscreen");
+            }
+          });
+
+          // 🚫 Switch tab/window = disqualify
+          window.addEventListener("blur", () => {
+            if (testStarted) {
+              tabSwitches++;
+              disqualify("Switched window/tab");
+            }
+          });
+
+          // 🚫 Block paste
+          document.addEventListener("paste", e => { e.preventDefault(); pasteAttempts++; });
+
+          // Track backspace + keystrokes
+          input.addEventListener("keydown", function(e) {
+            keystrokes.push(Date.now());
+            if (e.key === "Backspace") backspaceCount++;
+          });
+
+          // Main typing handler
+          input.addEventListener("input", function() {
+            if (!testStarted) startTest();
+
+            const typed = input.value;
+            const len = typed.length;
+
+            // Reveal text smoothly
+            renderText(len);
+
+            // Progress bar
+            const progress = Math.min((len / fullText.length) * 100, 100);
+            progressBar.style.width = progress + "%";
+
+            if (len >= fullText.length) {
+              finishTest();
+            }
+          });
+
+          // 🛑 Disqualify
+          let alreadyFinished = false;
+
+          function disqualify(reason) {
+            if (alreadyFinished) return;
+            alreadyFinished = true;
+
+            clearInterval(timerInterval);
+
+            // Optional: show a nice message
+            alert("Test cancelled: " + reason);
+
+            sendResult(true);
+          }
+
+
+          // ✅ Finish normally
+          function finishTest() {
+            if (alreadyFinished) return;
+            alreadyFinished = true;
+
+            clearInterval(timerInterval);
+            sendResult(false);
+          }
+
+
+          // 📤 Send result
+          function sendResult(disqualified) {
+            const endTime = new Date();
+            const timeTaken = startTime ? (endTime - startTime) / 1000 : 0;
+
+            const typed = input.value;
+
+            const words = typed.trim().split(/\s+/).length;
+            const wpm = timeTaken > 0 ? Math.round((words / timeTaken) * 60) : 0;
+
+            let correct = 0;
+            for (let i = 0; i < Math.min(fullText.length, typed.length); i++) {
+              if (fullText[i] === typed[i]) correct++;
+            }
+            const accuracy = ((correct / fullText.length) * 100).toFixed(2);
+
+            fetch("/submit/", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+                "X-CSRFToken": "{{ csrf_token }}"
+              },
+              body: `test_id={{ test.id }}&wpm=${wpm}&accuracy=${accuracy}&time=${timeTaken}&tab_switches=${tabSwitches}&paste_attempts=${pasteAttempts}&backspace_count=${backspaceCount}&disqualified=${disqualified}&keystrokes=${encodeURIComponent(JSON.stringify(keystrokes))}`
+         }).then(() => {
+          // First logout, then go to login page
+          fetch("/accounts/logout/", { method: "GET" })
+            .then(() => {
+              window.location.href = "/accounts/login/";
+            })
+            .catch(() => {
+              // Fallback if logout fails
+              window.location.href = "/accounts/login/";
+            });
+        });
+
+
+          }
+
+          const capsWarning = document.getElementById("capsWarning");
+
+  // Detect Caps Lock state
+  input.addEventListener("keyup", function (e) {
+    if (e.getModifierState && e.getModifierState("CapsLock")) {
+      capsWarning.classList.remove("hidden");
+    } else {
+      capsWarning.classList.add("hidden");
     }
-
-    // 🚫 Exit fullscreen = disqualify
-    document.addEventListener("fullscreenchange", () => {
-      if (testStarted && !document.fullscreenElement) {
-        disqualify("Exited fullscreen");
-      }
-    });
-
-    // 🚫 Switch tab/window = disqualify
-    window.addEventListener("blur", () => {
-      if (testStarted) {
-        tabSwitches++;
-        disqualify("Switched window/tab");
-      }
-    });
-
-    // 🚫 Block paste
-    document.addEventListener("paste", e => { e.preventDefault(); pasteAttempts++; });
-
-    // Track backspace + keystrokes
-    input.addEventListener("keydown", function(e) {
-      keystrokes.push(Date.now());
-      if (e.key === "Backspace") backspaceCount++;
-    });
-
-    // Main typing handler
-    input.addEventListener("input", function() {
-      if (!testStarted) startTest();
-
-      const typed = input.value;
-      const len = typed.length;
-
-      // Reveal text smoothly
-      renderText(len);
-
-      // Progress bar
-      const progress = Math.min((len / fullText.length) * 100, 100);
-      progressBar.style.width = progress + "%";
-
-      if (len >= fullText.length) {
-        finishTest();
-      }
-    });
-
-    // 🛑 Disqualify
-    let alreadyFinished = false;
-
-    function disqualify(reason) {
-      if (alreadyFinished) return;
-      alreadyFinished = true;
-
-      clearInterval(timerInterval);
-
-      // Optional: show a nice message
-      alert("Test cancelled: " + reason);
-
-      sendResult(true);
-    }
-
-
-    // ✅ Finish normally
-    function finishTest() {
-      if (alreadyFinished) return;
-      alreadyFinished = true;
-
-      clearInterval(timerInterval);
-      sendResult(false);
-    }
-
-
-    // 📤 Send result
-    function sendResult(disqualified) {
-      const endTime = new Date();
-      const timeTaken = startTime ? (endTime - startTime) / 1000 : 0;
-
-      const typed = input.value;
-
-      const words = typed.trim().split(/\s+/).length;
-      const wpm = timeTaken > 0 ? Math.round((words / timeTaken) * 60) : 0;
-
-      let correct = 0;
-      for (let i = 0; i < Math.min(fullText.length, typed.length); i++) {
-        if (fullText[i] === typed[i]) correct++;
-      }
-      const accuracy = ((correct / fullText.length) * 100).toFixed(2);
-
-      fetch("/submit/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          "X-CSRFToken": "{{ csrf_token }}"
-        },
-        body: `test_id={{ test.id }}&wpm=${wpm}&accuracy=${accuracy}&time=${timeTaken}&tab_switches=${tabSwitches}&paste_attempts=${pasteAttempts}&backspace_count=${backspaceCount}&disqualified=${disqualified}&keystrokes=${encodeURIComponent(JSON.stringify(keystrokes))}`
-   }).then(() => {
-    // First logout, then go to login page
-    fetch("/accounts/logout/", { method: "GET" })
-      .then(() => {
-        window.location.href = "/accounts/login/";
-      })
-      .catch(() => {
-        // Fallback if logout fails
-        window.location.href = "/accounts/login/";
-      });
   });
 
-
+  // Also check on focus (in case Caps Lock was already ON)
+  input.addEventListener("focus", function (e) {
+    if (e.getModifierState && e.getModifierState("CapsLock")) {
+      capsWarning.classList.remove("hidden");
+    } else {
+      capsWarning.classList.add("hidden");
     }
+  });
 </script>
 {% endblock %}
