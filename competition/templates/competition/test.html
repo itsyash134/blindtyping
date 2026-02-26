@@ -46,7 +46,6 @@
     </div>
 
     <!-- Input (Right) -->
-<!-- Input (Right) -->
 <div>
   <textarea
     id="input"
@@ -112,41 +111,44 @@
       let backspaceCount = 0;
 
       // Render text with smooth styling
- function renderText(upto) {
-  let html = "";
-  const typed = input.value;
+      function renderText() {
+        let html = "";
+        const typed = input.value;
+        const caretPos = typed.length; // caret follows what user typed
 
-  for (let i = 0; i < fullText.length; i++) {
-    const expectedChar = fullText[i];
-    const typedChar = typed[i];
+        for (let i = 0; i < fullText.length; i++) {
+          const expectedChar = fullText[i];
+          const typedChar = typed[i];
 
-    if (i < typed.length) {
-      if (typedChar === expectedChar) {
-        // ✅ Correct character
-        html += `<span class="text-green-400">${expectedChar}</span>`;
-      } else {
-        // ❌ Wrong character
-        html += `<span class="text-red-400 underline">${expectedChar}</span>`;
+          if (i < typed.length) {
+            if (typedChar === expectedChar) {
+              // ✅ Correct character
+              html += `<span class="text-green-400">${expectedChar}</span>`;
+            } else {
+              // ❌ Wrong character
+              html += `<span class="text-red-400 underline">${expectedChar}</span>`;
+            }
+          } 
+          else if (i === caretPos) {
+            // ▶️ Caret at current typing position
+            html += `<span id="caret" class="bg-green-400/20 text-green-300 animate-pulse px-0.5">${expectedChar || " "}</span>`;
+          } 
+          else {
+            // ⏳ Not typed yet
+            html += `<span class="text-gray-400">${expectedChar}</span>`;
+          }
+        }
+
+        display.innerHTML = html;
+
+        // 🔽 Auto-scroll to keep caret in view
+        const caret = document.getElementById("caret");
+        if (caret) {
+          const caretTop = caret.offsetTop;
+          const boxHeight = display.clientHeight;
+          display.scrollTop = caretTop - boxHeight / 2;
+        }
       }
-    } else if (i === typed.length) {
-      // ▶️ Caret position
-      html += `<span id="caret" class="bg-green-400/20 text-green-300 animate-pulse px-0.5">${expectedChar || " "}</span>`;
-    } else {
-      // ⏳ Not typed yet
-      html += `<span class="text-gray-400">${expectedChar}</span>`;
-    }
-  }
-
-  display.innerHTML = html;
-
-  // 🔽 Auto-scroll to keep current line in view
-  const caret = document.getElementById("caret");
-  if (caret) {
-    const caretTop = caret.offsetTop;
-    const boxHeight = display.clientHeight;
-    display.scrollTop = caretTop - boxHeight / 2;
-  }
-}
 
 
       renderText(0);
@@ -256,10 +258,16 @@
         const wpm = timeTaken > 0 ? Math.round((words / timeTaken) * 60) : 0;
 
         let correct = 0;
-        for (let i = 0; i < Math.min(fullText.length, typed.length); i++) {
+        const comparedLength = Math.min(fullText.length, typed.length);
+
+        for (let i = 0; i < comparedLength; i++) {
           if (fullText[i] === typed[i]) correct++;
         }
-        const accuracy = ((correct / fullText.length) * 100).toFixed(2);
+
+        // If user typed nothing, accuracy = 0
+        const accuracy = comparedLength > 0 
+          ? ((correct / comparedLength) * 100).toFixed(2) 
+          : 0;
 
         fetch("/submit/", {
           method: "POST",
